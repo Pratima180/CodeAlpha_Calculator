@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculator — CodeAlpha Task 2</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600&family=Inter:wght@300;400;500;600&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1c1c1c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+    }
+
+    .calc-window {
+      background: #202020;
+      width: 320px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+      user-select: none;
+    }
+
+    /* Title bar */
+    .titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px 0;
+      color: #fff;
+    }
+
+    .titlebar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hamburger {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .hamburger span {
+      width: 16px;
+      height: 1.5px;
+      background: #ccc;
+      border-radius: 2px;
+    }
+
+    .titlebar h2 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .titlebar-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .title-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #aaa;
+      font-size: 0.9rem;
+      transition: background 0.15s;
+    }
+
+    .title-icon:hover { background: #333; color: #fff; }
+
+    /* Display */
+    .display {
+      padding: 8px 16px 12px;
+      text-align: right;
+      min-height: 110px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .display .expr {
+      font-size: 0.8rem;
+      color: #888;
+      min-height: 1.2em;
+      margin-bottom: 2px;
+      word-break: break-all;
+    }
+
+    .display .number {
+      font-size: 3rem;
+      font-weight: 300;
+      color: #fff;
+      line-height: 1.1;
+      word-break: break-all;
+      transition: font-size 0.1s;
+    }
+
+    /* Memory row */
+    .mem-row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      padding: 0 4px;
+      margin-bottom: 4px;
+    }
+
+    .mem-btn {
+      background: transparent;
+      border: none;
+      color: #aaa;
+      font-size: 0.72rem;
+      padding: 6px 2px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-family: inherit;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .mem-btn:hover { background: #333; color: #fff; }
+    .mem-btn:disabled { color: #444; cursor: default; }
+    .mem-btn:disabled:hover { background: transparent; }
+
+    /* Button grid */
+    .btn-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: #171717;
+      border-top: 1px solid #2a2a2a;
+    }
+
+    .btn {
+      background: #2d2d2d;
+      border: none;
+      color: #fff;
+      font-size: 1rem;
+      font-family: inherit;
+      font-weight: 400;
+      padding: 0;
+      height: 64px;
+      cursor: pointer;
+      transition: background 0.1s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn:hover { background: #3a3a3a; }
+    .btn:active { background: #444; }
+
+    /* Ripple */
+    .btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: white;
+      opacity: 0;
+      transition: opacity 0.1s;
+    }
+    .btn:active::after { opacity: 0.06; }
+
+    /* Button types */
+    .btn.light {
+      background: #333;
+      color: #fff;
+    }
+    .btn.light:hover { background: #3e3e3e; }
+
+    .btn.op {
+      background: #2d2d2d;
+      color: #fff;
+      font-size: 1.1rem;
+    }
+    .btn.op:hover { background: #3a3a3a; }
+
+    .btn.equals {
+      background: #4a7c2f;
+      color: #fff;
+      font-size: 1.3rem;
+      font-weight: 500;
+    }
+    .btn.equals:hover { background: #5a9638; }
+    .btn.equals:active { background: #3d6826; }
+
+    .btn.op.active-op {
+      background: #4a7c2f;
+      color: #fff;
+    }
+
+    /* Last row rounded corners */
+    .btn:last-child { border-bottom-right-radius: 11px; }
+    .btn.bottom-left { border-bottom-left-radius: 11px; }
+
+    /* Small text buttons */
+    .btn.small { font-size: 0.82rem; }
+
+    /* Keyboard hint */
+    .hint {
+      text-align: center;
+      color: #444;
+      font-size: 0.7rem;
+      padding: 6px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="calc-window">
+  <!-- Title bar -->
+  <div class="titlebar">
+    <div class="titlebar-left">
+      <div class="hamburger">
+        <span></span><span></span><span></span>
+      </div>
+      <h2>Standard</h2>
+    </div>
+    <div class="titlebar-right">
+      <div class="title-icon">⊞</div>
+      <div class="title-icon">↩</div>
+    </div>
+  </div>
+
+  <!-- Display -->
+  <div class="display">
+    <div class="expr" id="expr"></div>
+    <div class="number" id="display">0</div>
+  </div>
+
+  <!-- Memory row -->
+  <div class="mem-row">
+    <button class="mem-btn" disabled>MC</button>
+    <button class="mem-btn" disabled>MR</button>
+    <button class="mem-btn" id="mPlus">M+</button>
+    <button class="mem-btn" id="mMinus">M−</button>
+    <button class="mem-btn" id="mStore">MS</button>
+    <button class="mem-btn" id="mView">M∨</button>
+  </div>
+
+  <!-- Button grid -->
+  <div class="btn-grid">
+    <!-- Row 1 -->
+    <button class="btn light small" data-action="percent">%</button>
+    <button class="btn light small" data-action="ce">CE</button>
+    <button class="btn light small" data-action="clear">C</button>
+    <button class="btn light" data-action="backspace">⌫</button>
+
+    <!-- Row 2 -->
+    <button class="btn light small" data-action="inv">¹∕ₓ</button>
+    <button class="btn light small" data-action="sq">x²</button>
+    <button class="btn light small" data-action="sqrt">²√x</button>
+    <button class="btn op" data-op="÷">÷</button>
+
+    <!-- Row 3 -->
+    <button class="btn" data-num="7">7</button>
+    <button class="btn" data-num="8">8</button>
+    <button class="btn" data-num="9">9</button>
+    <button class="btn op" data-op="×">×</button>
+
+    <!-- Row 4 -->
+    <button class="btn" data-num="4">4</button>
+    <button class="btn" data-num="5">5</button>
+    <button class="btn" data-num="6">6</button>
+    <button class="btn op" data-op="−">−</button>
+
+    <!-- Row 5 -->
+    <button class="btn" data-num="1">1</button>
+    <button class="btn" data-num="2">2</button>
+    <button class="btn" data-num="3">3</button>
+    <button class="btn op" data-op="+">+</button>
+
+    <!-- Row 6 -->
+    <button class="btn bottom-left light small" data-action="sign">⁺∕₋</button>
+    <button class="btn" data-num="0">0</button>
+    <button class="btn" data-action="dot">.</button>
+    <button class="btn equals" data-action="equals">=</button>
+  </div>
+
+  <div class="hint">Keyboard: 0–9 · + − * / · Enter · Esc · Backspace</div>
+</div>
+
+<script>
+  const displayEl = document.getElementById('display');
+  const exprEl    = document.getElementById('expr');
+
+  let state = {
+    current: '0',
+    prev: null,
+    op: null,
+    waitingForNext: false,
+    justComputed: false,
+    expression: '',
+    memory: 0,
+  };
+
+  /* ── helpers ── */
+  function fmt(n) {
+    if (!isFinite(n)) return 'Cannot divide by 0';
+    const s = parseFloat(n.toPrecision(12)).toString();
+    return s.length > 14 ? parseFloat(n.toPrecision(10)).toString() : s;
+  }
+
+  function updateDisplay() {
+    const len = state.current.length;
+    displayEl.style.fontSize = len > 14 ? '1.4rem' : len > 10 ? '2rem' : '3rem';
+    displayEl.textContent = state.current;
+    exprEl.textContent    = state.expression;
+  }
+
+  /* ── number input ── */
+  function inputNum(n) {
+    if (state.waitingForNext || state.justComputed) {
+      state.current       = n === '.' ? '0.' : n;
+      state.waitingForNext = false;
+      state.justComputed   = false;
+    } else if (n === '.' && state.current.includes('.')) {
+      return;
+    } else if (state.current === '0' && n !== '.') {
+      state.current = n;
+    } else if (state.current.length >= 15) {
+      return;
+    } else {
+      state.current += n;
+    }
+    updateDisplay();
+  }
+
+  /* ── compute ── */
+  function compute(a, op, b) {
+    const fa = parseFloat(a), fb = parseFloat(b);
+    switch (op) {
+      case '+': return fa + fb;
+      case '−': return fa - fb;
+      case '×': return fa * fb;
+      case '÷': return fb === 0 ? Infinity : fa / fb;
+    }
+  }
+
+  /* ── operator ── */
+  function setOp(op) {
+    if (state.op && !state.waitingForNext) {
+      const res = compute(state.prev, state.op, state.current);
+      state.prev    = fmt(res);
+      state.current = fmt(res);
+    } else {
+      state.prev = state.current;
+    }
+    state.op             = op;
+    state.expression     = `${state.prev} ${op}`;
+    state.waitingForNext = true;
+    state.justComputed   = false;
+    highlightOp(op);
+    updateDisplay();
+  }
+
+  /* ── equals ── */
+  function equals() {
+    if (!state.op || state.prev === null) return;
+    const res  = compute(state.prev, state.op, state.current);
+    exprEl.textContent = `${state.prev} ${state.op} ${state.current} =`;
+    state.current      = isFinite(res) ? fmt(res) : 'Cannot divide by 0';
+    state.expression   = '';
+    state.prev         = null;
+    state.op           = null;
+    state.justComputed = true;
+    state.waitingForNext = false;
+    highlightOp(null);
+    updateDisplay();
+  }
+
+  /* ── special ops ── */
+  function doAction(action) {
+    let cur = parseFloat(state.current);
+    switch (action) {
+      case 'clear':
+        state = { current:'0', prev:null, op:null, waitingForNext:false, justComputed:false, expression:'', memory: state.memory };
+        highlightOp(null);
+        break;
+      case 'ce':
+        state.current = '0';
+        state.waitingForNext = false;
+        break;
+      case 'backspace':
+        if (state.justComputed || state.waitingForNext) return;
+        state.current = state.current.length > 1 ? state.current.slice(0, -1) : '0';
+        break;
+      case 'sign':
+        state.current = fmt(-cur);
+        break;
+      case 'percent':
+        state.current = fmt(state.prev ? parseFloat(state.prev) * cur / 100 : cur / 100);
+        break;
+      case 'inv':
+        state.current = cur === 0 ? 'Cannot divide by 0' : fmt(1 / cur);
+        break;
+      case 'sq':
+        state.current = fmt(cur * cur);
+        break;
+      case 'sqrt':
+        state.current = cur < 0 ? 'Invalid input' : fmt(Math.sqrt(cur));
+        break;
+      case 'dot':
+        inputNum('.'); return;
+      case 'equals':
+        equals(); return;
+    }
+    updateDisplay();
+  }
+
+  function highlightOp(op) {
+    document.querySelectorAll('.btn.op').forEach(b => {
+      b.classList.toggle('active-op', b.dataset.op === op);
+    });
+  }
+
+  /* ── memory ── */
+  document.getElementById('mStore').addEventListener('click', () => { state.memory = parseFloat(state.current); });
+  document.getElementById('mPlus').addEventListener('click',  () => { state.memory += parseFloat(state.current); });
+  document.getElementById('mMinus').addEventListener('click', () => { state.memory -= parseFloat(state.current); });
+  document.getElementById('mView').addEventListener('click',  () => {
+    state.current = fmt(state.memory);
+    state.waitingForNext = false;
+    updateDisplay();
+  });
+
+  /* ── button events ── */
+  document.querySelectorAll('[data-num]').forEach(b =>
+    b.addEventListener('click', () => inputNum(b.dataset.num)));
+  document.querySelectorAll('[data-op]').forEach(b =>
+    b.addEventListener('click', () => setOp(b.dataset.op)));
+  document.querySelectorAll('[data-action]').forEach(b =>
+    b.addEventListener('click', () => doAction(b.dataset.action)));
+
+  /* ── keyboard ── */
+  document.addEventListener('keydown', e => {
+    if (e.key >= '0' && e.key <= '9') inputNum(e.key);
+    else if (e.key === '.')           inputNum('.');
+    else if (e.key === '+')           setOp('+');
+    else if (e.key === '-')           setOp('−');
+    else if (e.key === '*')           setOp('×');
+    else if (e.key === '/') { e.preventDefault(); setOp('÷'); }
+    else if (e.key === 'Enter' || e.key === '=') equals();
+    else if (e.key === 'Escape')      doAction('clear');
+    else if (e.key === 'Backspace')   doAction('backspace');
+    else if (e.key === '%')           doAction('percent');
+  });
+
+  updateDisplay();
+</script>
+</body>
+</html>
